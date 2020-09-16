@@ -18,7 +18,18 @@ dmg:
 mac:
   icon: build/icons/icon.icns
 win:
-  icon: build/icons/icon.ico
+  icon: build/icons
+  artifactName: '${productName}_${version}.${ext}'
+  verifyUpdateCodeSignature: false
+  target:
+    - target: nsis
+      arch:
+        - ia32
+nsis:
+  oneClick: false
+  createDesktopShortcut: always
+  allowToChangeInstallationDirectory: true
+extends: null
 linux:
   icon: build/icons
 electronVersion: 4.2.12
