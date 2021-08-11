@@ -38,7 +38,7 @@ class WebSocketClass {
             console.log(`${name}连接成功`, e);
             setInterval(()=>{
                 this.heartBeat()
-            }, 10000)
+            }, 30000)
         };
         this.ws.onmessage= (e)=>{
             let msg= this.decodeNetData(e.data)
@@ -95,16 +95,48 @@ class WebSocketClass {
             if(msg.type == publicText.GET_ROOM_LIST){
                 v.$bus.$emit( publicText.GET_ROOM_LIST, msg.data)
             }
+            //更新个人信息
+            if(msg.type == publicText.UPDATE_USER_BASIC_INFO){
+                v.$bus.$emit( publicText.UPDATE_USER_BASIC_INFO, msg)
+            }
+            //全局搜索房间
+            if(msg.type == publicText.SEARCH_ROOM_COPY){
+                console.log(msg.data)
+                v.$bus.$emit( publicText.SEARCH_ROOM_COPY, msg.data)
+            }
+            //注册
+            if(msg.type == publicText.REGISTER){
+                v.$bus.$emit( publicText.REGISTER, msg)
+            }
+            //重置密码
+            if(msg.type == publicText.RESETPWD){
+                v.$bus.$emit( publicText.RESETPWD, msg)
+            }
+            //获取好友详情信息
+            if(msg.type == publicText.GET_FRIEND_BASIC_INFO){
+                v.$bus.$emit( publicText.GET_FRIEND_BASIC_INFO, msg.data)
+            }
+            //进入房间密码验证
+            if(msg.type == publicText.CHECK_IN_ROOM){
+                v.$bus.$emit( publicText.CHECK_IN_ROOM, msg.data)
+            }
+            //进入房间密码验证
+            if(msg.type == publicText.GET_APPLY_FRIEND_LIST){
+                v.$bus.$emit( publicText.GET_APPLY_FRIEND_LIST, msg)
+            }
             //删除好友后的返回消息
             // if(msg.type == publicText.DELETE_FRIEND){
             //     v.$bus.$emit( publicText.GET_ROOM_LIST, msg.data)
             // }
             
         }else{
-            v.$message({
-                message: msg.desc,
-                type: 'warning'
-            });      
+            if(msg.type != 'tick'){
+                v.$message({
+                    message: msg.desc,
+                    type: 'warning'
+                });      
+    
+            }
             // v.$alert(msg.desc, '提示', {
             //     confirmButtonText: '确定',
             // });
@@ -112,7 +144,7 @@ class WebSocketClass {
         }
     }
     heartBeat(){
-        let msg= `{ type: 'getRoomList' }`
+        let msg= `{type:"tick"}`
         //console.log('保活')
         this.sendMsg(msg)
     }

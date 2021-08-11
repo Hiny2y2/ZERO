@@ -1,5 +1,16 @@
 <template>
   <div class="login">
+      <div class="display-handle">
+        <span
+            class="display-min"
+            @click="min()"
+        >-</span>
+        <span
+            class="display-close"
+            @click="close()"
+        >x</span>
+
+      </div>
       <canvas class="login-bg" id="login_bg">
 
       </canvas>
@@ -7,38 +18,72 @@
           <div class="login-title">{{brandName}}</div>
             <el-form>
                 <el-form-item label="">
-                    <el-input placeholder="请输入账号" v-model="form.name"></el-input>
+                    <el-input 
+                    placeholder="请输入账号"
+                     v-model="form.name"
+                     clearable
+                     ></el-input>
                 </el-form-item>
                 <el-form-item label="">
-                    <el-input show-password placeholder="请输入密码" v-model="form.pw"></el-input>
+                    <el-input 
+                    show-password 
+                    placeholder="请输入密码" 
+                    v-model="form.pw"
+                    clearable
+                    ></el-input>
                 </el-form-item>
-                <el-form-item label="手机号" v-show="switchVal == 'reg' || switchVal == 'forgetPW'">
-                    <el-input v-model="form.phone"></el-input>
-                    <el-button>
-                        <span>发送验证码</span>
+                <el-form-item 
+                    label="" 
+                    v-show="switchVal == 'reg' || switchVal == 'forgetPW'"
+                    
+                >
+                    <el-input v-model="form.phone"
+                        placeholder="请输入手机号"
+                        style="width: 70%;float:left;"
+                    ></el-input>
+                    <el-button
+                        style="width: 30%;float:left; padding: 13px 0"
+                        @click="sendAuthCode"
+                        :disabled="number>0"
+                    >
+                        <span>
+                            发送验证码  
+                            <span v-show="number>0">
+                                ({{number}}秒)
+                            </span>
+                        </span>
                     </el-button>
+                </el-form-item>
+                <el-form-item 
+                    label="" 
+                    v-show="switchVal == 'reg' || switchVal == 'forgetPW'"
+                    
+                >
+                    <el-input v-model="form.code"
+                        placeholder="请输入验证码"
+                        
+                    ></el-input>
                 </el-form-item>
             </el-form>
             <el-button 
-            @click="login"
-            v-show="switchVal == 'login'"
+                @click="login"
+                v-show="switchVal == 'login'"
             >登录</el-button>
             <el-button 
-            @click="reg"
-            v-show="switchVal == 'reg'"
+                @click="reg"
+                v-show="switchVal == 'reg'"
             >注册</el-button>
+            <el-button 
+                @click="resetPW"
+                v-show="switchVal == 'forgetPW'"
+            >重置密码</el-button>
             <div class="bottom-button">
                 <span v-show="switchVal != 'login'" @click="switchVal= 'login'">返回</span>
                 <span v-show="switchVal == 'login'" @click="switchVal= 'forgetPW'">忘记密码</span>
-                <span v-show="switchVal == 'login'" @click="switchVal= 'reg'">注册</span>
-                <!-- <el-switch
-                    style="display: block"
-                    v-model="switchVal"
-                    active-color="#13ce66"
-                    inactive-color="#ff4949"
-                    inactive-text="登录"
-                    active-text="注册">
-                </el-switch> -->
+                <span 
+                    v-show="switchVal == 'login'" 
+                    @click="switchVal= 'reg'"
+                >注册</span>
             </div>
 
       </div>
@@ -47,15 +92,21 @@
 
 <script>
     import publicText from '@/assets/js/publicText.service'
+    const {ipcRenderer: ipc} = require('electron');
+
     export default {
         name: "login",
         data (){
             return {
+                number: 0,
+                btnTimer: null,
                 brandName: publicText.BRAND_NAME,
                 switchVal: 'login',
                 form: {
-                    name: 'zyx',
-                    pw: '123'
+                    name: '',
+                    pw: '',
+                    phone: '',
+                    code: '', //手机验证码
                 }
             }
         },
@@ -66,6 +117,76 @@
             }
         },
         methods: {
+            min(){
+                console.log(ipc)
+                ipc.send('min')
+
+            },
+            close(){
+                console.log(ipc)
+                ipc.send('close')
+            },
+            resetPW(){
+                if(this.form.phone == ''){
+                    this.$alert( '手机号不能为空', '提示', {
+                        confirmButtonText: '确定',
+                    });
+                    return
+                }
+                let msg= 
+                `{type:"resetPwd",mobile:"${this.form.phone}",newPassword:"${this.form.pw}",code:"${this.form.code}"}`
+                this.$ws.sendMsg(msg)
+
+            },
+            restore(){ //重置状态
+                this.form= {
+                    name: '',
+                    pw: '',
+                    phone: '',
+                    code: '', //手机验证码
+                }
+                this.switchVal= 'login'
+            },
+            boardCastHandle(){
+                this.$bus.$on(publicText.REGISTER, (res)=>{
+                    if(res.code =='SUCCESS'){
+                        this.restore()
+                    }
+                })
+                this.$bus.$on(publicText.RESETPWD, (res)=>{
+                    if(res.code =='SUCCESS'){
+                        this.restore()
+                    }
+                })
+            },
+            sendAuthCode(){
+                if(this.form.phone == ''){
+                    this.$message({
+                        message: '请输入手机号',
+                        type: 'warning'
+                    });      
+                    return
+                }
+                if(this.btnTimer && this.number > 0 ){
+                    return
+                }else if(this.btnTimer && this.number == 0){
+                    clearInterval(this.btnTimer)
+                    this.btnTimer= null
+                    
+                }
+                let msg= ''
+                if(this.switchVal == 'reg'){ //注册
+                    msg= `{type:"getRegisterSMS",mobile:"${this.form.phone}"}`
+                }else if(this.switchVal == 'forgetPW'){
+                    msg= `{type:"getResetPWDSMS",mobile:"${this.form.phone}"}`
+                }
+                this.$ws.sendMsg(msg)
+                this.number= 60
+                this.btnTimer= setInterval(()=>{
+                    this.number--
+                }, 1000)
+                
+            },
             createBg(){
                 var c = document.getElementById("login_bg");
                 var ctx = c.getContext("2d");
@@ -106,7 +227,8 @@
                     });
                     return
                 }
-                let msg= `{type:"register", username: "${this.form.name}", password:"${this.form.pw}", mobile: "${this.form.phone}"}`
+                let msg= 
+                `{type:"register",username:"${this.form.name}",password:"${this.form.pw}",mobile:"${this.form.phone}",code:"${this.form.code}"}`
                 this.$ws.sendMsg(msg)
             },
             login(){
@@ -116,13 +238,22 @@
         },
         mounted(){
             this.createBg()
+            this.boardCastHandle()
+            this.$bus.$on(publicText.GET_USER_BASIC_INFO, res=>{
+                res.userName= res.user_name
+                this.$store.dispatch('setUserInfo', res)
+            })
+            this.$bus.$on(publicText.UPDATE_USER_BASIC_INFO, res=>{ //更新个人信息
+                let msg= `{type:"${publicText.GET_USER_BASIC_INFO}"}`
+                this.$ws.sendMsg(msg) //获取用户信息
+            })
             this.$bus.$on('login', res=>{
-
                 this.$store.dispatch('setUserInfo', {
-                    userName: this.form.name
+                    userName: this.form.name,
                 })
-                console.log(this.$store.state.user.userInfo, 'setUserInfo')
-                this.$router.push({path: '/gameChannel'})
+                let msg= `{type:"${publicText.GET_USER_BASIC_INFO}"}`
+                this.$ws.sendMsg(msg) //获取用户信息
+                this.$router.push({path: '/chatPanel'})
             })
         },
     };
@@ -134,6 +265,27 @@
 .login
   height 100%
   position relative
+  -webkit-app-region drag
+  .display-handle
+        position absolute 
+        right 20px
+        top 20px
+        height 20px
+        z-index 4
+        -webkit-app-region no-drag
+        span
+            padding 0px 20px
+            color #fff
+            -webkit-user-drag none
+            cursor default
+            font-size 30px
+            -webkit-app-region no-drag
+        .display-min
+            &:hover
+                background #abb2f7
+        .display-close
+            &:hover
+                background rgb(255, 93, 93)
   .login-bg
     width 100%
     height 100%
@@ -144,14 +296,17 @@
     top 50%
     transform translate(-50%, -50%)
     text-align center
+    width 250px
+    -webkit-app-region none
     .login-title
         color #fff
         font-size 40px
         text-align center
         font-family serif
         user-select none
-        animation shine 1.5s ease infinite alternate;
+        animation shine 1.5s ease infinite alternate
         margin-bottom 20px
+        
     .el-form-item
         .el-input__inner
             background transparent

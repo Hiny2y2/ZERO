@@ -2,11 +2,10 @@
     <div class="channelCard">
         <div
             class="cover"
-            :style="{'background-image': `url(${require('@/assets/img/999.jpeg')})`}"
+            @click="jump2detail"
+            :style="{'background-image': `url(${require('@/assets/img/SAO.jpeg')})`}"
         >
-            <div class="cover-detail">...</div>
             <div class="cover-mask">
-                <div class="el-icon-video-play" @click="jump2detail"></div>
             </div>
         </div>
         <div class="channelInfo">
@@ -14,45 +13,8 @@
                 <i class="el-icon-lock"></i>
             </span>
             <span class="map-name">{{roomDetail.name}}</span>
-            <span class="online-number">{{roomDetail.total}}人</span>
+            <span class="online-number">{{roomDetail.current}}/{{roomDetail.total}}</span>
         </div>
-        <div class="bottom">
-            <div class="bottom-left">
-                <div class="bottom-like">
-                    <img
-                        v-show="!like"
-                        title="赞一个"
-                        :src="require('@/assets/img/article/dianzan_1.png')"
-                        alt
-                    />
-                    <img
-                        title="取消赞"
-                        v-show="like"
-                        :src="require('@/assets/img/article/dianzan.png')"
-                        alt
-                    />
-                </div>
-            </div>
-            <div class="bottom-right">
-                <div class="bottom-download">
-                    <i class="el-icon-download"></i>
-                </div>
-            </div>
-        </div>
-        <el-dialog
-            title="提示"
-            :visible.sync="dialogVisible"
-            width="30%"
-            :before-close="handleClose">
-            <span>
-                <el-input v-model="pwd" placeholder="请输入密码"></el-input>
-            </span>
-            <span slot="footer" class="dialog-footer">
-                <el-button @click="dialogVisible = false">取 消</el-button>
-                <el-button type="primary" @click="enterJump">确 定</el-button>
-            </span>
-        </el-dialog>
-
     </div>
 </template>
 
@@ -69,31 +31,21 @@ export default {
     },
     data() {
         return {
-            pwd: '', //房间密码
             like: false,
-            dialogVisible: false
         };
     },
     methods: {
-        handleClose(){
-            this.pwd= ''
-             
-        },
         enterJump(){ //有密码房间确认进入
-            if(this.roomDetail.roomDetail.isEncrp){ //如果房间有密码
-                
-            }else{
-                this.$router.push({name: 'channelDetail', params: this.roomDetail })
+            this.$router.push({name: 'channelDetail', params: this.roomDetail })
 
-            }
 
         },
         jump2detail(){
-            if(this.roomDetail.roomDetail.isEncrp){ //如果房间有密码
-                this.dialogVisible= true
-            }else{
+            // if(this.roomDetail.isEncrp){ //如果房间有密码
+            //     this.dialogVisible= true
+            // }else{
                 this.$router.push({name: 'channelDetail', params: this.roomDetail })
-            }
+            // }
         }
     },
 };
@@ -126,10 +78,10 @@ export default {
             height 100%
             position absolute
             background #484848
-            opacity 0.5
+            opacity 0
             z-index 1
             &:hover
-                background #000
+                opacity .5
             &>div
                 position absolute
                 left 50%

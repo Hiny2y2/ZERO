@@ -1,10 +1,12 @@
 const state = {
     isLogin: false,
-    userInfo: {}
+    userInfo: {},
+    friendsList: [],
   }
   const getters = {
     isLogin: state=> state.isLogin,
     userInfo: state=> state.userInfo,
+    friendsList: state=> state.friendsList,
   }
   
   const mutations = {
@@ -13,7 +15,11 @@ const state = {
     },
     setUserInfo (state, val) {
         state.userInfo= val
-    }
+    },
+    saveFriends (state, val) {
+       state.friendsList= val
+    },
+    
   
 
   }
@@ -26,7 +32,11 @@ const state = {
     setUserInfo (commit, val) {
         // do something async
         commit.commit('setUserInfo', val)
-      },
+    },
+    saveFriends (commit, val) {
+        // do something async
+        commit.commit('saveFriends', val)
+    },
   
   }
   

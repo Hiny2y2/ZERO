@@ -1,0 +1,12 @@
+version: 0.0.1
+files:
+  - url: ZERO-0.0.1-mac.zip
+    sha512: zij9/9o50lNq9xaKecMc460XqVmnfZFOm89kPznygVpHRK7eb7hpNIntSWFx3NuzjISNmABo7A0pGiJswpSjTA==
+    size: 58738810
+    blockMapSize: 61505
+  - url: ZERO-0.0.1.dmg
+    sha512: sWAxPGWlFskcrj5lzOcpivEg8bShtgXyQRQ22k8pxh5QJvme5cF3nyBGnZ1xrP3Z1HTmggZ362F+Lx2LMgZAHA==
+    size: 60637357
+path: ZERO-0.0.1-mac.zip
+sha512: zij9/9o50lNq9xaKecMc460XqVmnfZFOm89kPznygVpHRK7eb7hpNIntSWFx3NuzjISNmABo7A0pGiJswpSjTA==
+releaseDate: '2020-09-06T12:50:35.542Z'

@@ -18,13 +18,12 @@ dmg:
 mac:
   icon: build/icons/icon.icns
 win:
-  icon: build/icons
+  icon: build/icons/icon.icns
   artifactName: '${productName}_${version}.${ext}'
   verifyUpdateCodeSignature: false
   target:
-    - target: nsis
-      arch:
-        - ia32
+    - nsis
+    - zip
 nsis:
   oneClick: false
   createDesktopShortcut: always

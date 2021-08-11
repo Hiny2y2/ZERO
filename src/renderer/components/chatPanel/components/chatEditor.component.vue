@@ -2,11 +2,11 @@
     <div class="chat-editor-component">
         <div class="emoji-panel"
             v-show="emojiShow"
-            
         >
             <emoji-component
                 :imgSrc="imgSrc"
                 @change="sendEmoji"
+                 v-clickoutside="handleClick"
             ></emoji-component>
         </div>
         <div class="chat-editor-bar">
@@ -45,7 +45,13 @@
 <script>
 import vTextEditorDiv from '@/components/common/vTextEditorDiv.component'
 import emojiComponent from './emoji.component'
+// import Clickoutside from '@/assets/js/clickOutSide'
+import Clickoutside from "element-ui/src/utils/clickoutside";
+
 export default {
+    directives: {
+        Clickoutside
+    },
     data(){
         return {
             emojiShow: false,
@@ -61,9 +67,11 @@ export default {
                 }
             )
         }
-        console.log(this.imgSrc)
     },
     methods: {
+        handleClick(){
+            this.emojiShow= false
+        },
         sendEmoji(number){ //发送表情
             console.log(number)
             //定义表情为 $/number; 格式

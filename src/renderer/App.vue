@@ -1,10 +1,10 @@
 <template>
   <div id="app">
-    <div class="main-header" v-show="isLogin">
+    <div class="main-header" v-if="isLogin">
       <commonHeader></commonHeader>
     </div>
     <div class="main-content" :style="'height:' + (isLogin ? '' : '100%')">
-      <div class="main-broadside" v-show="isLogin">
+      <div class="main-broadside" v-if="isLogin">
         <broadside></broadside>
       </div>
       <div class="main-body" :style="'width:' + (isLogin ? '' : '100%')">
@@ -24,15 +24,17 @@
 import commonHeader from '@/components/commonHeader/commonHeader'
 import broadside from '@/components/broadside/broadside'
 import publicText from '@/assets/js/publicText.service'
+const {ipcRenderer} = require('electron');
+
 export default {
-  name: "qq",
+  name: "ZERO",
   components: {
     commonHeader,
     broadside
   },
   data(){
     return {
-      isLogin: true,
+      isLogin: false,
     }
   },
   computed: {
@@ -50,11 +52,12 @@ export default {
     
   },
   mounted(){
+    this.$store.dispatch('setLoginStatus', false)
+    this.$router.push({path: '/login'})
+    ipcRenderer.send('creatUDP')
     this.$bus.$on(publicText.LOGIN,(flag)=>{
       this.isLogin= flag
     })
-    console.log('counter1', this.$store.state.user.isLogin)
-
   }
 };
 </script>

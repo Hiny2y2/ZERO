@@ -13,19 +13,34 @@
             </el-scrollbar>
         </div>
         <div class="page-wrap">
+            <div class="refresh"
+                @click="refreshRoom"
+            >
+                <i class="el-icon-refresh"></i>
+            </div>
             <div class="add-room" @click="openAddRoomDialog">新建房间</div>
-            <div
-                cdivlass="prevPage"
+            <!-- <div
+                class="prevPage"
+                @click="sharp"
                 :style="{'background-image': `url(${require('@/assets/img/page/arrow.png')})`}"
-            ></div>
+            ></div> -->
 
-            <el-pagination layout=" pager" :total="1000"></el-pagination>
-            <div
+            <el-pagination 
+                layout="prev, pager, next" 
+                :total="allRoom.length"
+                :current-page.sync="currentPage"
+                @current-change="handleCurrentChange"
+            ></el-pagination>
+            <!-- <div
                 class="nextPage"
+                @click="plus"
                 :style="{'background-image': `url(${require('@/assets/img/page/arrow.png')})`}"
-            ></div>
+            ></div> -->
         </div>
-        <add-room-dialog ref="addRoomDialog"></add-room-dialog>
+        <add-room-dialog 
+            ref="addRoomDialog"
+            @updateRoomList="getRoomList"
+        ></add-room-dialog>
     </div>
 </template>
 
@@ -41,11 +56,30 @@ export default {
     },
     data() {
         return {
+            pageSize: 8,
+            currentPage: 1,
+            allRoom: [],
             emptyDiv: 0,
             roomList: [],
         };
     },
     methods: {
+        refreshRoom(){
+            this.getRoomList()
+        },
+        handleCurrentChange(e){
+            this.currentPage= e
+            let arr= _.clone(this.allRoom)
+            let startNum= this.pageSize*this.currentPage-this.pageSize;
+            let endNum= this.pageSize*this.currentPage
+            this.roomList= arr.slice(startNum, endNum)
+
+        },
+        searchChannel(key){ //搜索频道
+            let msg= `{type:"searchRoom",keyword: "${key}"}`
+            this.$ws.sendMsg(msg)
+            this.currentPage= 1 //初始化分页
+        },
         openAddRoomDialog() {
             //打开新建房间弹框
             this.$refs.addRoomDialog.dialogVisible = true;
@@ -54,9 +88,23 @@ export default {
             let msg = `{type:"getRoomList"}`;
             this.$ws.sendMsg(msg);
             this.$bus.$on(publicText.GET_ROOM_LIST, (res) => {
-                this.roomList = res.roomList;
-                console.log(this.roomList, "list");
+                this.allRoom = res.roomList;
+                let arr= _.clone(this.allRoom)
+                let startNum= this.pageSize*this.currentPage-this.pageSize;
+                let endNum= this.pageSize*this.currentPage
+                this.roomList= arr.slice(startNum, endNum)
+                console.log(this.roomList, "listByAll");
             });
+            this.$bus.$on(publicText.SEARCH_ROOM, (res) => { //搜索房间
+                this.allRoom = res.roomList;
+                let arr= _.clone(this.allRoom)
+                let startNum= this.pageSize*this.currentPage-this.pageSize;
+                let endNum= this.pageSize*this.currentPage
+                this.roomList= arr.slice(startNum, endNum)
+                console.log(this.roomList, "listBySearch");
+            });
+            //this.currentPage
+            
         },
         getServerList() {
             let msg = `{type:"searchRoom",keyword:""}`;
@@ -65,6 +113,15 @@ export default {
     },
     created() {
         this.getRoomList();
+        this.$bus.$on('searchChannel', (key)=>{ //搜索
+            this.searchChannel(key.name)
+        })
+        this.$bus.$on('enterDetail', (params)=>{ //从顶部搜索来的
+            this.$router.push({name: 'channelDetail', params: params })
+        })
+        if(this.$route.params.name){ //搜索
+            this.searchChannel(this.$route.params.name)
+        }
     },
 };
 </script>
@@ -86,7 +143,7 @@ export default {
                 .channelCard
                     width calc(25% - 10px)
                     margin-bottom 10px
-                    height 250px
+                    height 210px
                 .empty-div
                     width calc(25% - 10px)
     .page-wrap
@@ -94,9 +151,17 @@ export default {
         align-items center
         justify-content center
         position relative
+        .refresh
+            position absolute
+            left 0 
+            cursor default
+            user-select none
+            transition all .2s
+            &:hover
+                transform rotate(180deg)
         .add-room
             position absolute
-            left 0
+            left 20px
             cursor default
             user-select none
         .el-pagination

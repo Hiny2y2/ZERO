@@ -18,11 +18,18 @@ Vue.prototype.$moment= moment
 
 import websocket from '@/server/WebSocket'
 // let ws= new websocket('ws://47.93.62.163:8000/ws');
-let ws= new websocket('ws://52.81.250.99:8000/ws');
+// let ws= new websocket('ws://52.81.250.99:8000/ws');
+let ws= new websocket('ws://1.117.230.210:8002/ws');
 
 Vue.prototype.$ws= ws
 import BUS from '@/server/eventBus'
 BUS(Vue)
+
+import * as filter from '@/assets/js/filter.service'
+Object.keys (filter).forEach(keys=>{
+  Vue.filter(keys,filter[keys])
+})
+
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
 router.beforeEach((to, from, next)=>{
   if(from.name == 'gameChannel' && to.name == 'channelDetail'){ //游戏频道

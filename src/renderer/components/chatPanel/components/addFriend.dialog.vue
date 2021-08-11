@@ -45,6 +45,10 @@
             }
         },
         methods: {
+            setVal(key){
+                this.input= key
+                this.searchAddFriendList()
+            },
             reset(){
                 this.input= '';
                 this.searchResult= false
@@ -55,7 +59,6 @@
             // },
             getList (){
                 this.$bus.$on(publicText.SEARCH_USER, (data)=>{
-                    console.log(data,123)
                     this.resUserList= [];
                     this.resUserList= data.users
 

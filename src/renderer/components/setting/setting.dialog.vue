@@ -11,7 +11,7 @@
                 <systemOption @changeFont="changeFont"></systemOption>
             </el-tab-pane>
             <el-tab-pane label="关于" name="about">
-                当老王说如果9月7号没做完，就不给我钱的时候，我就知道，我不能再打游戏了
+                ZERO v0.1
             </el-tab-pane>
         </el-tabs>
     </el-dialog>

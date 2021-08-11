@@ -2,9 +2,12 @@
     <el-dialog title="" :visible.sync="showDialog"
         top="10vh"
         custom-class="user-info-dialog"
+        append-to-body
     >
         <div class="dialog-content">
-            <div class="user-info-item user-headimg">
+            <div class="user-info-item user-headimg"
+                @click="openHeadimgDialog"
+            >
                 <el-avatar :size="60" :src="circleUrl"></el-avatar>
                 <!-- <img :src="require('@/assets/img/timg.jpeg')" alt=""> -->
             </div>
@@ -80,32 +83,47 @@
                 </div>
             </div>
         </div>
+        <head-img
+            ref="headimg"
+            @change="changeImg"
+        ></head-img>
     </el-dialog>
 </template>
 <script>
+    import publicText from '@/assets/js/publicText.service'
+    import headImg from './headImg.dialog'
+
     export default{
+        components: {
+            headImg
+        },
         data (){
             return {
                 editName: false,
                 SexOptions: [
                     {
-                        code: '01',
-                        name: '未知'
+                        code: 3,
+                        name: '保密'
                     },
                     {
-                        code: '0',
+                        code: 0,
                         name: '男'
                     },
                     {
-                        code: '1',
+                        code: 1,
                         name: '女'
                     }
                 ],
                 AreaOptions: [
                     {
-                        code: '南非',
+                        code: 'cn',
+                        name: '中国'
+                    },
+                    {
+                        code: 'nf',
                         name: '南非'
-                    }
+                    },
+
                 ],
                 form: {
                     birthday: '',
@@ -119,18 +137,30 @@
             }
         },
         methods: {
-            updateBasicInfo(){
-                let msg= `{type:"updateUserBasicInfo",area:"${this.form.area}",sex:"${this.form.sex}",birthday:"${this.form.birthday}"}`
+            changeImg(e){ //改变头像
+                this.$set(this.form, 'figure', e)
+                this.circleUrl= 
+                require(`@/assets/img/headimg/${this.form.figure}.jpg`)//头像
 
-                console.log(msg)
+            },
+            openHeadimgDialog(){
+                this.$refs.headimg.dialogVisible= true
+            },
+            updateBasicInfo(){ //更新用户个人信息
+                let msg= 
+                `{type:"updateUserBasicInfo",
+                    area:"${this.form.area}",
+                    sex:"${this.form.sex}",
+                    birthday:"${this.form.birthday}",
+                    figure: "${this.form.figure}"
+                
+                }`
                 this.$ws.sendMsg(msg)
-
+                this.showDialog= false
             },
             signatureHandle(){
                 let msg= `{type:"updateUserSignature",signature:"${this.form.signature}"}`
-                console.log(msg)
                 this.$ws.sendMsg(msg)
-
             },
             editNameHandle(){
                 this.editName= !this.editName
@@ -141,16 +171,21 @@
             }
         },
         created(){
-            this.$bus.$on('getUserBasicInfo', BasicInfoData=>{
+            this.$bus.$on('getUserBasicInfo', res=>{
+                let BasicInfoData= _.clone(res)
                 this.form.birthday= BasicInfoData.birthday;
-                
                 this.form.birthday= BasicInfoData.create;
-
                 this.form.sex= BasicInfoData.sex;
                 this.form.area= BasicInfoData.area;
                 this.form.signature= BasicInfoData.signature;
                 this.form.user_name= BasicInfoData.user_name;
-
+                this.form.figure= '1'
+                if(BasicInfoData.figure && BasicInfoData.figure !== 'null'){
+                    //原来后台会传来字符串的null 😭 😭 😭
+                    this.form.figure= BasicInfoData.figure; //头像
+                }
+                this.circleUrl= 
+                require(`@/assets/img/headimg/${this.form.figure}.jpg`)//头像
             })
         }
     }

@@ -1,28 +1,36 @@
 <template>
   <div class="chatPanel"
-    @click="clickMenuFlag= false"
+    @click="clickMenuFlag= false;delGroupFlag= false"
   >
       <div class="person-list">
+        <div class="del-group"
+            v-show="delGroupFlag"
+            :style="{
+                left: delGroupPos.left+'px',
+                top: delGroupPos.top+'px'
+            }"
+            @click="delComfirmGroup"
+        >删除群组</div>
         <el-scrollbar style="height:100%">
             <el-collapse v-model="activeNames" @change="handleChange">
                 <el-collapse-item
                     v-for="personList in linkman"
-                    :key="personList.groupName"
+                    :key="personList.type"
                     :title="personList.groupName" 
                     :name="personList.groupName"
+                    @contextmenu.native="openDelMenu($event, personList)"
                 >
                     <div
                         v-for="item in personList.person"
                         :key="item.name"
                         class="person-item"
-                        @mouseenter="openRightInfo(item, $event)"
-                        @mouseleave="leaveRightInfo()"
-                        @click="onChat(item); letsChat= true"
+                        @click="onChat(item);"
                         @contextmenu.prevent="openClickMenu($event, item)"
                     >
                         <div class="person-head"
                             @mouseover.stop="openLeftInfo(item, $event)"
                             @mouseleave="leaveLeftInfo()"
+                            @click.stop="openFriendDetail(item)"
                         >
                             <img :src="item.headimg" alt="">
                         </div>
@@ -37,13 +45,58 @@
                     </div>
                 </el-collapse-item>
             </el-collapse>
+            <!-- 好友申请列表 -->
+            <div
+                v-if="applyLists.length"
+            >待处理好友申请：</div>
+            <div
+                class="apply-list-wrap"
+                v-if="applyLists.length"
+            >
+                <div class="apply-list-item"
+                    v-for="item in applyLists"
+                    :key="item.id"
+                >
+                    <div class="apply-row">
+                        <div class="A-L"
+                            :title="item.fromusername"
+                        >
+                            {{item.fromusername}}
+                        </div>
+                        <div class="A-R">
+                            <i class="el-icon-circle-check"
+                                title="同意"
+                                style="color: #67C23A; cursor: pointer"
+                                @click="applyFriendHandle(item,1)"
+                            ></i>
+                            <i class="el-icon-circle-close"
+                                title="拒绝"
+                                style="color: #F56C6C; cursor: pointer"
+                                @click="applyFriendHandle(item,0)"
+                            ></i>
+                        </div>
+                    </div>
+                    <div class="apply-row"
+                        style="display: block"
+                        v-if="item.message"
+                    >
+                        附加信息：
+                        <div
+                            class="a-sub-msg"
+                        >
+                            {{item.message}}
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
         </el-scrollbar>
         <div class="click-menu"
             v-show="clickMenuFlag"
             :style="{
                 left: clickMenuLeft+'px',
                 top: clickMenuTop+'px'
-                }"
+            }"
         >
             <el-cascader-panel 
                 v-model="clickMenuModel"  
@@ -91,11 +144,12 @@
             </div>
         </div>
       </div>
-        <div class="addFriend"
+        <!-- <div class="addFriend"
         @click="addFriendDialog()"
-        >+</div>
+        >+</div> -->
         <div class="addGroup"
-            @click="addGroupDialog()"
+            @click="openAddGroupDialog()"
+            
         >添加群组</div>
 
       <div class="chat-content">
@@ -111,21 +165,41 @@
       <addFriendDialog
         ref="addFriend"
       ></addFriendDialog>
+      <addGroupDialog
+        ref="addGroup"
+        @change="getFriends"
+      ></addGroupDialog>
+      <friend-info-dialog
+        ref="friendInfoDialog"
+      >
+
+      </friend-info-dialog>
   </div>
 </template>
 
 <script>
 import chatContent from './components/chatContent.component'
 import addFriendDialog from './components/addFriend.dialog'
+import addGroupDialog from './components/addGroup.dialog'
 import publicText from '@/assets/js/publicText.service'
+import friendInfoDialog from './components/friendBasicInfo.dialog'
 
 export default {
     components: {
         chatContent,
-        addFriendDialog
+        addFriendDialog,
+        addGroupDialog,
+        friendInfoDialog
     },
     data(){
         return {
+            applyLists: [],
+            delGroupPos: {
+                left: 0,
+                top: 0
+            },
+            delGroupFlag: false,
+            focusGroup: {},
             unreadList: [], //未读的好友消息
             currentFocusPerson: {},
             clickRightFocusPerson: {}, //右键击中的好友
@@ -134,18 +208,18 @@ export default {
                 {
                     value: 'zhinan',
                     label: '移动好友至',
-                    children: [
-                        {
-                            value: '1',
-                            label: '分组1'
-                        },
-                        {
-                            value: '2',
-                            label: '分组2'
-                        },
-
-                    ]
-                }
+                    children: []
+                },
+                {
+                    value: 'detail',
+                    label: '好友信息',
+                    
+                },
+                {
+                    value: 'del',
+                    label: '删除好友',
+                    
+                },
  
             ],
             clickMenuTop: 0, 
@@ -170,8 +244,46 @@ export default {
         }
     },
     methods: {
+        applyFriendHandle(item, flag){
+            //1为同意，0为拒绝，默认同意
+            let applyMsg= `{type:"approveFriend",applyId:"${item.id}"}`
+            if(!flag){ //拒绝
+                applyMsg= `{type:"refuseFriend",applyId:"${item.id}"}`
+            }
+            this.$ws.sendMsg(applyMsg)
+
+            //再获取一下添加好友列表
+            let msg= `{type: "${publicText.GET_APPLY_FRIEND_LIST}"}`
+            this.$ws.sendMsg(msg)
+
+            this.getFriends()
+        },
+        openFriendDetail(item){
+            console.log(item)
+        },
+        delComfirmGroup(){
+            let msg= 
+            `{type:"deleteFriendGroup",friendGroupId:"${this.focusGroup.type}"}`
+            this.$ws.sendMsg(msg)
+            this.delGroupFlag= false
+        },
+        openDelMenu(event, item){
+            this.focusGroup= item
+            const menuMinWidth = 0
+            const offsetLeft = this.$el.getBoundingClientRect().left // container margin left
+            const offsetWidth = this.$el.offsetWidth // container width
+            const maxLeft = offsetWidth - menuMinWidth // left boundary
+            // const left = event.clientX - offsetLeft // 15: margin right
+            const left = event.clientX // 15: margin right
+            if (left > maxLeft) {
+                this.delGroupPos.left= maxLeft;
+            } else {
+                this.delGroupPos.left= left;
+            }
+            this.delGroupPos.top= event.clientY;
+            this.delGroupFlag= true
+        },
         delFriendHandle(){
-            console.log(this.rightInfo.friendId)
             let delMsg= `{type:"${publicText.DELETE_FRIEND}",friendId:"${this.rightInfo.friendId}"}`
             this.$ws.sendMsg(delMsg)
             //删除好友后刷新好友列表
@@ -180,10 +292,28 @@ export default {
 
         },
         handleClickMenuChange(e){ //移动好友分组
+            if(e[0] == 'del'){ //删除好友
+                let msg= 
+                `{type:"deleteFriend",friendId:"${this.clickRightFocusPerson.friendId}"}`
+                
+                this.$ws.sendMsg(msg)
+                this.getFriends()
+            }else
+            if(e[0] == 'detail'){ //查看好友详情
+                // console.log(this.clickRightFocusPerson)
+                // let msg= 
+                //     `{type:"${publicText.GET_FRIEND_BASIC_INFO}",friendId:"${this.clickRightFocusPerson.friendId}"}`
+                // this.$ws.sendMsg(msg)
+                this.$refs.friendInfoDialog.friendInfo= this.clickRightFocusPerson
+                this.$refs.friendInfoDialog.open()
+
+            }else{
+                let msg= `{type:"moveFriendtoGroup",friendGroupId:"${e[1]}",friendId:"${this.clickRightFocusPerson.friendId}"}`
+                this.$ws.sendMsg(msg)
+                this.getFriends()
+
+            }
             this.clickMenuFlag= false
-            let msg= `{type:"moveFriendtoGroup",friendGroupId:"${e[1]}",friendId:"${this.clickRightFocusPerson.friendId}"}`
-            this.$ws.sendMsg(msg)
-            this.getFriends()
             this.clickMenuModel= []
         },
         openClickMenu(event, itemPerson){ //右键菜单
@@ -200,18 +330,17 @@ export default {
             } else {
                 this.clickMenuLeft= left;
             }
+            this.clickMenuTop= event.clientY;
             this.ClickMenuOptions[0].children= this.linkman.map(item=>{
                 item.value=item.type
                 item.label=item.groupName
                 return item
             })
             this.clickRightFocusPerson= itemPerson
-            this.clickMenuTop= event.clientY;
             this.clickMenuFlag= true
         },
         getMsg(){ //获取好友发来的消息
             this.$bus.$on( publicText.GET_CHAT, (data)=>{
-                console.log(data)
                 if(data.userId != this.currentFocusPerson.friendId){ //如果消息不是当前聚焦好友发来的
                     for(let i in this.linkman){
                         for(let j in this.linkman[i].person){
@@ -224,7 +353,6 @@ export default {
                             }
                         }
                     }
-                    console.log(this.unreadList)
                 }else{
                     this.$refs.chatContent.getMsg(data)
                 }
@@ -234,8 +362,8 @@ export default {
             
         },
 
-        addGroupDialog(){
-
+        openAddGroupDialog(){
+            this.$refs.addGroup.dialogVisible= true
         },
         addFriendDialog(){
             this.$refs.addFriend.dialogVisible= true
@@ -259,7 +387,6 @@ export default {
             //friendId
             this.currentFocusPerson= item
             this.$refs.chatContent.chatPerson= item
-
             let list= _.clone(this.unreadList)
             for(let i in list){
                 if(list[i].userId == this.currentFocusPerson.friendId){
@@ -274,6 +401,7 @@ export default {
                     }
                 }
             }
+            this.letsChat= true
         },
         leaveRightInfo(){
             if(!this.enterRightInfo){ //如果鼠标没有进入弹出的右侧详情区域 就关闭
@@ -297,11 +425,22 @@ export default {
         handleChange(){
 
         },
+        applyListener(){//监听好友申请
+            this.$bus.$on(publicText.GET_APPLY_FRIEND_LIST, resx=>{
+                // this.$message('收到好友申请')
+                console.log(resx,'resx2222')
+                this.applyLists= resx.data.applies
+                this.getFriends()
+            })
+            let msg= `{type: "${publicText.GET_APPLY_FRIEND_LIST}"}`
+            this.$ws.sendMsg(msg)
+
+
+        },
         getFriends(){ //获取好友
             let msg= `{type: "getFriendList"}`
             this.$ws.sendMsg(msg)
             this.$bus.$on(publicText.GET_FRIEND_LIST, (res)=>{
-                console.log(res, 'rrrrrrrrrrrr')
                 this.linkman= []
                 this.linkman.push({
                     groupName: '默认分组',
@@ -327,36 +466,34 @@ export default {
                         for(let i in this.linkman){
                             if( item.friendType == this.linkman[i].type ){
                                 this.linkman[i].person.push(item)
+                                if(item.headimg && item.headimg != ''){
+                                    item.headimg= require(`@/assets/img/headimg/${item.headimg}.jpg`)
+                                }else{
+                                    item.headimg= require('@/assets/img/headimg/1.jpg')
+                                }
                             }
                         }
                     }
                 })
-                
+                //将好友列表缓存起来，用于全局搜索
+                this.$store.dispatch('saveFriends', this.linkman)
             })
         }
     },
     created(){
         this.getFriends()
         this.getMsg()
-    },
-    mounted(){
-        if(this.$route.params.name){ //从顶部搜索过来的
-            console.log(this.linkman, this.$route.params.name)
-            for(let i in this.linkman){
-                let personList= this.linkman[i].person
-                for(let j in personList){
-                    if(personList[j].friendName == this.$route.params.name){
-                        this.onChat(personList[j])
-                        break
-                    }
-                }
-            }
-        }
+        this.applyListener()//监听好友申请
     },
     watch:{
         $route(val){
-            if(val.name){ //在好友面板搜索好友
-                console.log(this.linkman, 2)
+            if(val.name == 'chatPanel'){ //在好友面板搜索好友
+                this.getFriends()
+                this.applyListener()
+                if(val.params.friendName){ //从顶部搜索过来的
+                    this.onChat(val.params)                    
+                }
+
             }
         }
     }
@@ -376,8 +513,6 @@ export default {
         left 125px
         bottom 6px
         cursor default
-        &:hover
-            background #eee
     .addFriend
         font-size 30px
         position absolute
@@ -390,17 +525,46 @@ export default {
         border-right 1px solid #0051ad
         overflow auto
         margin-bottom 40px
+        .del-group
+            position fixed
+            z-index 4
+            background #fff
+            color #4a4a4a
+            padding 5px
+        .apply-list-wrap
+            border 1px solid #0051ad
+            padding 5px
+            .apply-list-item
+                .apply-row
+                    display flex
+                    justify-content space-between
+                    align-items center
+                    .A-L
+                        width 140px
+                        text-overflow ellipsis
+                        white-space nowrap
+                        overflow hidden
+                    .a-sub-msg
+                        word-break break-all
+            .apply-list-item + .apply-list-item
+                margin-top 5px
+                border-top 1px solid #003470
         .click-menu
             position fixed
             z-index 4
             .el-cascader-panel
                 border none
-            .el-cascader-menu
+                .el-scrollbar__wrap
+                    height auto
+            .el-cascader-menu__list
                 background #fff
+            .el-cascader-menu
+                background transparent
 
             .el-cascader-menu:nth-child(1)
-                height 45px
+                height auto
                 background #fff
+                height 110px
             
         .person-left-info
             width 150px

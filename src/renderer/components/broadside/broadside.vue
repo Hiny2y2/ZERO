@@ -1,31 +1,23 @@
 <template>
   <div class="broadside">
-    
-    <div class="broadside-item"
-      :class="[ active == 1 ? 'item-active' : null ]"
-    >
-        <img :src="require('@/assets/img/broadside/world.png')" alt=""
-          @click="jumpTo('/gameChannel');active=1"
-        >
-        <!-- <i
-            class="el-icon-chat-dot-square"
-            @click="jumpTo('/chatPanel')"
-        ></i> -->
-    </div>
-
-    <div class="broadside-item"
-      :class="[ active == 2 ? 'item-active' : null ]"
+        <div class="broadside-item"
+      :class="[ $route.name == 'chatPanel' ? 'item-active' : null ]"
     >
         <img :src="require('@/assets/img/broadside/ziyuan.png')" alt=""
           @click="jumpTo('/chatPanel');active=2"
         >
-        <!-- <i
-            class="el-icon-chat-dot-square"
-            @click="jumpTo('/chatPanel')"
-        ></i> -->
     </div>
+
     <div class="broadside-item"
-      :class="[ active == 3 ? 'item-active' : null ]"
+      :class="[ $route.name == 'gameChannel' ? 'item-active' : null ]"
+    >
+        <img :src="require('@/assets/img/broadside/world.png')" alt=""
+          @click="jumpTo('/gameChannel');active=1"
+        >
+    </div>
+
+    <div class="broadside-item"
+      :class="[ $route.name == 'pyq' ? 'item-active'  : null ]"
     >
         <img :src="require('@/assets/img/broadside/pengyouquan.png')" alt=""
           @click="jumpTo('/pyq');active=3"
@@ -36,19 +28,14 @@
             @click="jumpTo('/pyq')"
         ></i> -->
     </div>
-    <div class="broadside-item"
+    <!-- <div class="broadside-item"
       :class="[ active == 4 ? 'item-active' : null ]"
 
     >
         <img :src="require('@/assets/img/broadside/pengyouquan.png')" alt=""
           @click="jumpTo('/login');active=4"
         >
-
-        <!-- <i
-            class="el-icon-basketball"
-            @click="jumpTo('/login')"
-        ></i> -->
-    </div>
+    </div> -->
 
     <div class="broadside-item">
       <el-dropdown
@@ -64,6 +51,10 @@
              command="setting"
           >设置
           </el-dropdown-item>
+          <el-dropdown-item
+             command="changeUser"
+          >切换账号
+          </el-dropdown-item>
         </el-dropdown-menu>
       </el-dropdown>
       <setting-dialog ref="setting"></setting-dialog>
@@ -77,6 +68,7 @@
 
 <script>
 import settingDialog from '@/components/setting/setting.dialog'
+import publicText from '@/assets/js/publicText.service'
 export default {
   components: { 
     settingDialog
@@ -91,7 +83,9 @@ export default {
       console.log(key, 'key')
       if(key == 'setting'){
         this.$refs.setting.dialogVisible= true
-
+      }else if(key == 'changeUser'){ //切换账号
+        this.$bus.$emit(publicText.LOGIN, false)
+        this.$router.push({path: '/login'})
       }
     },
     jumpTo(url){
@@ -109,6 +103,7 @@ export default {
     height 100%
     background #003470
     position relative
+    -webkit-app-region drag
     .item-active
       position relative
       &:before
@@ -139,6 +134,7 @@ export default {
         position relative
         user-select none
         margin-bottom 5px
+        -webkit-app-region none
         &:after
           content ''
           position absolute

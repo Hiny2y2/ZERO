@@ -94,7 +94,7 @@
                 formData: {
                     pwd: '',
                     isEncryption: false,
-                    maxNumber: '',
+                    maxNumber: 6,
                     roomDesc: '',
                     roomName: '',
                 },
@@ -113,7 +113,8 @@
                     isOpen:"true",
                     desc:"${this.formData.roomDesc}"}`
                 this.$ws.sendMsg(msg)
-
+                this.dialogVisible= false;
+                this.$emit('updateRoomList')
             },
             reset(){
 
